@@ -11,6 +11,9 @@ class DockViewModel {
     
     // Track hover state for magnification effects
     var hoveredAppId: String? = nil // Changed to String to match DockApp.id
+    
+    // Track content width for window resizing
+    var contentWidth: CGFloat = 0
 
     private let workspace = NSWorkspace.shared
 

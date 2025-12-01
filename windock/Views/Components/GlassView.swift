@@ -6,6 +6,9 @@ struct GlassView: NSViewRepresentable {
 
     func makeNSView(context: Context) -> NSView {
         let container = NSView()
+        // Ensure container resizes with SwiftUI view
+        container.autoresizingMask = [.width, .height]
+        
         let view = NSVisualEffectView()
         view.material = material
         view.blendingMode = blendingMode

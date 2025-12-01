@@ -13,9 +13,13 @@ struct WinDockApp: App {
             ContentView()
                 .environment(viewModel)
                 .background(Color.clear)
+                .onPreferenceChange(SizePreferenceKey.self) { size in
+                    viewModel.contentWidth = size.width
+                    appDelegate.updateWindowFrame(width: size.width, expanded: viewModel.selectedAppForPreview != nil)
+                }
                 // Listen for changes in the preview state to resize the window dynamically
                 .onChange(of: viewModel.selectedAppForPreview) { _, newValue in
-                    appDelegate.updateDockHeight(expanded: newValue != nil)
+                    appDelegate.updateWindowFrame(width: viewModel.contentWidth, expanded: newValue != nil)
                 }
         }
         .windowStyle(.hiddenTitleBar) // Basic SwiftUI hiding
@@ -54,10 +58,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let screenRect = screen.frame
             // Default to the collapsed height (120px)
             let dockHeight: CGFloat = 120
+            
+            // Initial width estimate (will be updated by SwiftUI)
+            let initialWidth: CGFloat = 600
+            let initialX = screenRect.midX - (initialWidth / 2)
+            
             let newFrame = NSRect(
-                x: screenRect.minX,
+                x: initialX,
                 y: screenRect.minY,
-                width: screenRect.width,
+                width: initialWidth,
                 height: dockHeight
             )
             window.setFrame(newFrame, display: true)
@@ -67,8 +76,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         window.ignoresMouseEvents = false
     }
     
-    // Helper to animate the dock height
-    func updateDockHeight(expanded: Bool) {
+    // Helper to animate the dock frame
+    func updateWindowFrame(width: CGFloat, expanded: Bool) {
         DispatchQueue.main.async {
             guard let window = NSApplication.shared.windows.first,
                   let screen = window.screen else { return }
@@ -76,20 +85,29 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let screenRect = screen.frame
             let newHeight: CGFloat = expanded ? 300 : 120
             
-            // Avoid redundant frame updates
-            if abs(window.frame.height - newHeight) < 1 {
-                return
-            }
+            // Ensure minimum width to avoid glitches
+            let targetWidth = max(width, 100)
+            
+            // Center the window horizontally
+            let newX = screenRect.midX - (targetWidth / 2)
             
             let newFrame = NSRect(
-                x: screenRect.minX,
+                x: newX,
                 y: screenRect.minY,
-                width: screenRect.width,
+                width: targetWidth,
                 height: newHeight
             )
             
-            // animate: true creates a smooth native macOS window transition
-            window.setFrame(newFrame, display: true, animate: true)
+            // Avoid redundant frame updates
+            if abs(window.frame.height - newHeight) < 1 && abs(window.frame.width - targetWidth) < 1 {
+                return
+            }
+            
+            // animate: false is CRITICAL here. 
+            // SwiftUI is already animating the content size (width/height) frame-by-frame.
+            // If we ask the window server to also animate (interpolate) the window frame, 
+            // it creates a conflict and a layout loop, leading to the crash.
+            window.setFrame(newFrame, display: true, animate: false)
         }
     }
 }
