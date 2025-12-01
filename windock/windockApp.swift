@@ -52,8 +52,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Initial Position (Collapsed state)
         if let screen = window.screen {
             let screenRect = screen.frame
-            // Default to the collapsed height (95px)
-            let dockHeight: CGFloat = 95
+            // Default to the collapsed height (120px)
+            let dockHeight: CGFloat = 120
             let newFrame = NSRect(
                 x: screenRect.minX,
                 y: screenRect.minY,
@@ -74,7 +74,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                   let screen = window.screen else { return }
             
             let screenRect = screen.frame
-            let newHeight: CGFloat = expanded ? 300 : 95
+            let newHeight: CGFloat = expanded ? 300 : 120
+            
+            // Avoid redundant frame updates
+            if abs(window.frame.height - newHeight) < 1 {
+                return
+            }
             
             let newFrame = NSRect(
                 x: screenRect.minX,
