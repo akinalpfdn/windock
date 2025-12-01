@@ -38,7 +38,7 @@ struct ContentView: View {
                             .stroke(Color.white.opacity(0.2), lineWidth: 1)
                     )
             )
-            .padding(.bottom, 20)
+            .padding(.bottom, 10) // Reduced padding to sit closer to edge
             // Capture the positions of the icons
             .onPreferenceChange(BoundsPreferenceKey.self) { preferences in
                 self.iconAnchors = preferences
@@ -70,5 +70,6 @@ struct ContentView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+        .ignoresSafeArea() // Allows the view to touch the screen edges
     }
 }
