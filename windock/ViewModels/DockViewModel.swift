@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 import Observation
 
 @Observable
@@ -9,71 +10,60 @@ class DockViewModel {
     var selectedAppForPreview: DockApp? = nil
     
     // Track hover state for magnification effects
-    var hoveredAppId: UUID? = nil
+    var hoveredAppId: String? = nil // Changed to String to match DockApp.id
+
+    private let workspace = NSWorkspace.shared
 
     init() {
-        loadMockData()
+        setupObservers()
+        refreshRunningApps()
     }
 
-    // Handles the core logic requested: Click -> Toggle Preview
-    func handleAppClick(_ app: DockApp) {
-        if app.isRunning {
-            if selectedAppForPreview?.id == app.id {
-                // Toggle off if clicking the same app
-                withAnimation(.snappy) {
-                    selectedAppForPreview = nil
-                }
-            } else {
-                // Show preview if it has windows
-                if !app.openWindows.isEmpty {
-                    withAnimation(.bouncy(duration: 0.3, extraBounce: 0.1)) {
-                        selectedAppForPreview = app
-                    }
-                }
+    private func setupObservers() {
+        let center = workspace.notificationCenter
+        // Listen for apps launching and terminating
+        center.addObserver(self, selector: #selector(refreshRunningApps), name: NSWorkspace.didLaunchApplicationNotification, object: nil)
+        center.addObserver(self, selector: #selector(refreshRunningApps), name: NSWorkspace.didTerminateApplicationNotification, object: nil)
+    }
+
+    @objc func refreshRunningApps() {
+        DispatchQueue.main.async {
+            // Filter for apps that have a UI (ActivationPolicy.regular)
+            let runningApps = self.workspace.runningApplications.filter { $0.activationPolicy == .regular }
+            
+            self.apps = runningApps.map { nsApp in
+                DockApp(
+                    name: nsApp.localizedName ?? "App",
+                    bundleIdentifier: nsApp.bundleIdentifier ?? UUID().uuidString,
+                    icon: nsApp.icon,
+                    isRunning: true,
+                    // Note: Getting real window snapshots for *other* apps requires
+                    // Screen Recording permissions and complex CGWindowList APIs.
+                    // We will keep the window list empty or mock it for now.
+                    openWindows: []
+                )
             }
-        } else {
-            // Logic to launch app would go here
-            toggleAppRunningState(app)
         }
     }
-    
-    // MARK: - Simulation Logic
-    
-    private func toggleAppRunningState(_ app: DockApp) {
-        guard let index = apps.firstIndex(where: { $0.id == app.id }) else { return }
+
+    func handleAppClick(_ app: DockApp) {
+        // 1. Activate the real app
+        if let runningApp = workspace.runningApplications.first(where: { $0.bundleIdentifier == app.bundleIdentifier }) {
+            runningApp.activate(options: .activateIgnoringOtherApps)
+        }
         
-        apps[index].isRunning.toggle()
-        
-        // If we just "launched" it, give it some dummy windows
-        if apps[index].isRunning {
-            apps[index].openWindows = [
-                WindowInfo(title: "\(app.name) - Main", previewColor: .blue.opacity(0.5)),
-                WindowInfo(title: "\(app.name) - Settings", previewColor: .gray.opacity(0.5))
-            ]
-        } else {
-            apps[index].openWindows = []
-            if selectedAppForPreview?.id == app.id {
+        // 2. Toggle preview logic (kept for when we add real window logic later)
+        if selectedAppForPreview?.id == app.id {
+            withAnimation(.snappy) {
                 selectedAppForPreview = nil
             }
+        } else {
+            // Only show if there are windows (currently empty in this step)
+            if !app.openWindows.isEmpty {
+                withAnimation(.bouncy(duration: 0.3, extraBounce: 0.1)) {
+                    selectedAppForPreview = app
+                }
+            }
         }
-    }
-
-    private func loadMockData() {
-        self.apps = [
-            DockApp(name: "Finder", iconName: "face.smiling", isRunning: true, openWindows: [
-                WindowInfo(title: "Downloads", previewColor: .blue),
-                WindowInfo(title: "Documents", previewColor: .cyan),
-                WindowInfo(title: "Desktop", previewColor: .indigo)
-            ]),
-            DockApp(name: "Safari", iconName: "safari", isRunning: true, openWindows: [
-                WindowInfo(title: "Apple.com", previewColor: .white),
-                WindowInfo(title: "GitHub", previewColor: .black)
-            ]),
-            DockApp(name: "Messages", iconName: "message.fill", isRunning: false, openWindows: []),
-            DockApp(name: "Mail", iconName: "envelope.fill", isRunning: true, openWindows: [
-                WindowInfo(title: "Inbox (2)", previewColor: .blue)
-            ]),
-            DockApp(name: "Terminal", iconName: "terminal.fill", isRunning: false, openWindows: [])
-        ]
     }
 }

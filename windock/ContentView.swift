@@ -4,8 +4,8 @@ struct ContentView: View {
     @Environment(DockViewModel.self) private var viewModel
     @Namespace private var animationNamespace
     
-    // We store the icon positions here
-    @State private var iconAnchors: [UUID: Anchor<CGRect>] = [:]
+    // Updated to use String keys matching DockApp.id
+    @State private var iconAnchors: [String: Anchor<CGRect>] = [:]
     
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -38,14 +38,12 @@ struct ContentView: View {
                             .stroke(Color.white.opacity(0.2), lineWidth: 1)
                     )
             )
-            .padding(.bottom, 10) // Reduced padding to sit closer to edge
-            // Capture the positions of the icons
+            .padding(.bottom, 10)
             .onPreferenceChange(BoundsPreferenceKey.self) { preferences in
                 self.iconAnchors = preferences
             }
             
             // 2. The Window Preview Overlay
-            // This sits logically above the dock in the ZStack
             if let selectedApp = viewModel.selectedAppForPreview,
                let anchor = iconAnchors[selectedApp.id] {
                 
@@ -53,14 +51,11 @@ struct ContentView: View {
                     let iconFrame = geometry[anchor]
                     
                     WindowPreviewList(app: selectedApp, namespace: animationNamespace)
-                        // Position the preview horizontally centered to the icon
-                        // and vertically above the icon
                         .position(
                             x: iconFrame.midX,
-                            y: iconFrame.minY - 70 // Offset upwards
+                            y: iconFrame.minY - 70
                         )
                 }
-                // Allow clicks to pass through empty areas to close
                 .contentShape(Rectangle())
                 .onTapGesture {
                     withAnimation {
@@ -70,6 +65,6 @@ struct ContentView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-        .ignoresSafeArea() // Allows the view to touch the screen edges
+        .ignoresSafeArea()
     }
 }
