@@ -51,11 +51,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
             // Fixed size to accommodate both dock and preview
             let dockWidth: CGFloat = 800
-            let dockHeight: CGFloat = 330 // Tall enough for preview
+            let dockHeight: CGFloat = 400 // Tall enough for preview
 
             // Center the window horizontally and PIN to bottom edge
             let dockX = screenRect.midX - (dockWidth / 2)
-            let dockY = -125.0// Exactly at bottom (no gap)
+            let dockY = -160.0// Exactly at bottom (no gap)
 
             let newFrame = NSRect(
                 x: dockX,
