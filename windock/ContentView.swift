@@ -4,12 +4,15 @@ struct ContentView: View {
     @Environment(DockViewModel.self) private var viewModel
     @Namespace private var animationNamespace
     
-    // Updated to use String keys matching DockApp.id
-    @State private var iconAnchors: [String: Anchor<CGRect>] = [:]
-    
     var body: some View {
-        ZStack(alignment: .bottom) {
-            
+        ZStack {
+            // 2. The Window Preview Overlay (always present, hidden when not needed)
+            WindowPreviewList(app: viewModel.selectedAppForPreview, namespace: animationNamespace)
+                .opacity(viewModel.selectedAppForPreview != nil ? 1 : 0)
+                .animation(.easeInOut(duration: 0.2), value: viewModel.selectedAppForPreview != nil)
+                .frame(width: 800, height: 300)
+                .position(x: 400, y: 100) // Fixed position above dock
+
             // 1. The Dock Bar
             HStack(spacing: 12) {
                 ForEach(viewModel.apps) { app in
@@ -22,9 +25,7 @@ struct ContentView: View {
                         viewModel.handleAppClick(app)
                     }
                     .onHover { isHovering in
-                        withAnimation(.interactiveSpring(response: 0.3, dampingFraction: 0.6)) {
-                            viewModel.hoveredAppId = isHovering ? app.id : nil
-                        }
+                        viewModel.handleHoverChanged(appId: app.id, isHovering: isHovering)
                     }
                 }
             }
@@ -39,46 +40,10 @@ struct ContentView: View {
                     )
             )
             .padding(.bottom, 10)
-            .onPreferenceChange(BoundsPreferenceKey.self) { preferences in
-                self.iconAnchors = preferences
-            }
-            
-            // 2. The Window Preview Overlay
-            if let selectedApp = viewModel.selectedAppForPreview,
-               let anchor = iconAnchors[selectedApp.id] {
-                
-                GeometryReader { geometry in
-                    let iconFrame = geometry[anchor]
-                    
-                    WindowPreviewList(app: selectedApp, namespace: animationNamespace)
-                        .position(
-                            x: iconFrame.midX,
-                            y: iconFrame.minY - 70
-                        )
-                }
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    withAnimation {
-                        viewModel.selectedAppForPreview = nil
-                    }
-                }
-            }
+            .frame(width: 800, height: 100) // Fixed dock size
         }
 
         .fixedSize(horizontal: true, vertical: false)
-        .background(
-            GeometryReader { geometry in
-                Color.clear
-                    .preference(key: SizePreferenceKey.self, value: geometry.size)
-            }
-        )
         .ignoresSafeArea()
-    }
-}
-
-struct SizePreferenceKey: PreferenceKey {
-    static var defaultValue: CGSize = .zero
-    static func reduce(value: inout CGSize, nextValue: () -> CGSize) {
-        value = nextValue()
     }
 }

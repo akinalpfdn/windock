@@ -40,23 +40,9 @@ struct DockIconView: View {
                 .frame(width: 4, height: 4)
                 .opacity(app.isRunning ? 1 : 0)
         }
-        // Coordinate space for popup positioning
-        .anchorPreference(key: BoundsPreferenceKey.self, value: .bounds) { anchor in
-            [app.id: anchor] // Ensure ID type matches DockApp.id (String)
-        }
     }
     
     private var currentSize: CGFloat {
-        isHovered ? baseSize * 1.5 : baseSize
-    }
-}
-
-// Update Preference Key to use String key
-struct BoundsPreferenceKey: PreferenceKey {
-    typealias Value = [String: Anchor<CGRect>]
-    static var defaultValue: Value = [:]
-    
-    static func reduce(value: inout Value, nextValue: () -> Value) {
-        value.merge(nextValue()) { $1 }
+        isHovered ? baseSize * 1.3 : baseSize // Reduced magnification for better performance
     }
 }
