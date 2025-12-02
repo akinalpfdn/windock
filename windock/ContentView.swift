@@ -11,7 +11,7 @@ struct ContentView: View {
                 .opacity(viewModel.selectedAppForPreview != nil ? 1 : 0)
                 .animation(.easeInOut(duration: 0.2), value: viewModel.selectedAppForPreview != nil)
                 .frame(width: 800, height: 300)
-                .position(x: 400, y: 100) // Fixed position above dock
+                .position(x: 400, y: 50) // Much higher position, above the dock
 
             // 1. The Dock Bar
             HStack(spacing: 12) {
