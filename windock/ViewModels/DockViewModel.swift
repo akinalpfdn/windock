@@ -143,11 +143,11 @@ final class DockViewModel {
         }
     }
 
-    // MARK: - Window Highlight
+    // MARK: - Aero Peek
 
     private func handleWindowHighlight(_ window: WindowInfo?) {
-        if let window {
-            highlightOverlay.show(bounds: window.bounds)
+        if let window, let thumbnail = window.thumbnail {
+            highlightOverlay.peek(thumbnail: thumbnail, bounds: window.bounds)
         } else {
             highlightOverlay.hide()
         }

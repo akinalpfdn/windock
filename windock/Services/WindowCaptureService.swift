@@ -15,8 +15,8 @@ enum WindowCaptureService {
 
             let filter = SCContentFilter(desktopIndependentWindow: scWindow)
             let config = SCStreamConfiguration()
-            config.width = Int(scWindow.frame.width) / 2
-            config.height = Int(scWindow.frame.height) / 2
+            config.width = Int(scWindow.frame.width)
+            config.height = Int(scWindow.frame.height)
             config.scalesToFit = true
             config.showsCursor = false
 

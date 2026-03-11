@@ -11,7 +11,6 @@ enum WindowManager {
     /// Brings a specific window to front using AXUIElement
     @discardableResult
     static func focusWindow(windowID: CGWindowID, pid: pid_t) -> Bool {
-        // Activate the app first so AX operations target the foreground app
         guard let runningApp = NSRunningApplication(processIdentifier: pid) else { return false }
         runningApp.activate()
 
@@ -25,8 +24,6 @@ enum WindowManager {
 
         for axWindow in axWindows {
             guard cgWindowID(of: axWindow) == windowID else { continue }
-
-            // Raise the window to front, then make it the focused window
             AXUIElementPerformAction(axWindow, kAXRaiseAction as CFString)
             AXUIElementSetAttributeValue(axWindow, kAXFocusedAttribute as CFString, kCFBooleanTrue)
             return true
