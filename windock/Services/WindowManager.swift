@@ -32,6 +32,31 @@ enum WindowManager {
         return false
     }
 
+    /// Closes a specific window via AXUIElement
+    @discardableResult
+    static func closeWindow(windowID: CGWindowID, pid: pid_t) -> Bool {
+        let appElement = AXUIElementCreateApplication(pid)
+
+        var windowsRef: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(appElement, kAXWindowsAttribute as CFString, &windowsRef) == .success,
+              let axWindows = windowsRef as? [AXUIElement] else {
+            return false
+        }
+
+        for axWindow in axWindows {
+            guard cgWindowID(of: axWindow) == windowID else { continue }
+
+            var closeButtonRef: CFTypeRef?
+            guard AXUIElementCopyAttributeValue(axWindow, kAXCloseButtonAttribute as CFString, &closeButtonRef) == .success else {
+                return false
+            }
+            let closeButton = closeButtonRef as! AXUIElement
+            return AXUIElementPerformAction(closeButton, kAXPressAction as CFString) == .success
+        }
+
+        return false
+    }
+
     /// Extracts the CGWindowID from an AXUIElement window
     private static func cgWindowID(of element: AXUIElement) -> CGWindowID? {
         var wid: CGWindowID = 0

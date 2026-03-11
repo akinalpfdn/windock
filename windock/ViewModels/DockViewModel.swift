@@ -90,6 +90,9 @@ final class DockViewModel {
             onWindowClick: { [weak self] window in
                 self?.handleWindowClick(window)
             },
+            onWindowClose: { [weak self] window in
+                self?.handleWindowClose(window)
+            },
             onWindowHover: { [weak self] window in
                 self?.handleWindowHighlight(window)
             },
@@ -140,6 +143,21 @@ final class DockViewModel {
             if !WindowManager.focusWindow(windowID: window.id, pid: runningApp.processIdentifier) {
                 runningApp.activate()
             }
+        }
+    }
+
+    private func handleWindowClose(_ window: WindowInfo) {
+        guard let hoveredApp,
+              let runningApp = workspace.runningApplications.first(where: { $0.bundleIdentifier == hoveredApp.bundleIdentifier }) else { return }
+
+        WindowManager.closeWindow(windowID: window.id, pid: runningApp.processIdentifier)
+
+        // Remove the closed window from the list and refresh preview
+        windows.removeAll { $0.id == window.id }
+        if windows.isEmpty {
+            dismissPreview()
+        } else {
+            updatePreviewContent()
         }
     }
 

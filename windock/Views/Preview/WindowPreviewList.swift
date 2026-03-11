@@ -5,6 +5,7 @@ struct PreviewPanelContent: View {
     let app: DockApp
     let windows: [WindowInfo]
     let onWindowClick: (WindowInfo) -> Void
+    let onWindowClose: (WindowInfo) -> Void
     let onWindowHover: (WindowInfo?) -> Void
     let onHoverChanged: (Bool) -> Void
 
@@ -13,6 +14,8 @@ struct PreviewPanelContent: View {
             ForEach(windows) { window in
                 WindowPreviewCard(window: window, onTap: {
                     onWindowClick(window)
+                }, onClose: {
+                    onWindowClose(window)
                 }, onHover: { isHovered in
                     onWindowHover(isHovered ? window : nil)
                 })
@@ -37,6 +40,7 @@ struct PreviewPanelContent: View {
 private struct WindowPreviewCard: View {
     let window: WindowInfo
     let onTap: () -> Void
+    let onClose: () -> Void
     let onHover: (Bool) -> Void
 
     @State private var isHovered = false
@@ -64,6 +68,13 @@ private struct WindowPreviewCard: View {
                 RoundedRectangle(cornerRadius: Layout.Preview.thumbnailCornerRadius)
                     .stroke(.white.opacity(Animation.borderOpacity), lineWidth: 1)
             )
+            .overlay(alignment: .topLeading) {
+                if isHovered {
+                    CloseButton(action: onClose)
+                        .padding(4)
+                        .transition(.opacity)
+                }
+            }
             .shadow(radius: 4)
 
             Text(window.title)
@@ -88,5 +99,23 @@ private struct WindowPreviewCard: View {
             }
         }
         .onTapGesture(perform: onTap)
+    }
+}
+
+// MARK: - Close Button
+
+private struct CloseButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "xmark")
+                .font(.system(size: 8, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(width: 16, height: 16)
+                .background(Color.red.opacity(0.8))
+                .clipShape(Circle())
+        }
+        .buttonStyle(.plain)
     }
 }
