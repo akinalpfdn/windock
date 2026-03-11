@@ -28,50 +28,40 @@ final class DockObserver {
     // MARK: - Setup
 
     private func setupObserver() {
-        print("[DockObserver] Setting up...")
-        print("[DockObserver] AX trusted: \(AXIsProcessTrusted())")
+        guard AXIsProcessTrusted() else { return }
 
         guard let dockApp = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first else {
-            print("[DockObserver] ERROR: Dock process not found")
             return
         }
 
         currentDockPID = dockApp.processIdentifier
-        print("[DockObserver] Dock PID: \(currentDockPID)")
         let dockAppElement = AXUIElementCreateApplication(currentDockPID)
 
         // Find the AXList child (the actual dock bar)
         guard let dockList = findDockList(in: dockAppElement) else {
-            print("[DockObserver] ERROR: Could not find AXList in Dock")
             return
         }
         dockListElement = dockList
-        print("[DockObserver] Found dock list element")
 
         // Create observer for selected children changes (= hover)
         var observer: AXObserver?
         let callback: AXObserverCallback = { _, element, notification, refcon in
             guard let refcon else { return }
-            let notifStr = notification as String
-            print("[DockObserver] Callback fired: \(notifStr)")
             let this = Unmanaged<DockObserver>.fromOpaque(refcon).takeUnretainedValue()
             DispatchQueue.main.async { this.handleSelectionChanged() }
         }
 
         let createResult = AXObserverCreate(currentDockPID, callback, &observer)
         guard createResult == .success, let observer else {
-            print("[DockObserver] ERROR: AXObserverCreate failed: \(createResult.rawValue)")
             return
         }
 
         let refcon = Unmanaged.passUnretained(self).toOpaque()
-        let addResult = AXObserverAddNotification(observer, dockList, kAXSelectedChildrenChangedNotification as CFString, refcon)
-        print("[DockObserver] AXObserverAddNotification result: \(addResult.rawValue) (0=success)")
+        AXObserverAddNotification(observer, dockList, kAXSelectedChildrenChangedNotification as CFString, refcon)
 
         CFRunLoopAddSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(observer), .commonModes)
 
         axObserver = observer
-        print("[DockObserver] Setup complete - listening for dock hover events")
     }
 
     /// Periodically verifies the Dock process is still alive and re-subscribes if needed
@@ -98,11 +88,7 @@ final class DockObserver {
     // MARK: - Event Handling
 
     private func handleSelectionChanged() {
-        print("[DockObserver] handleSelectionChanged called")
-        guard let dockList = dockListElement else {
-            print("[DockObserver] ERROR: dockListElement is nil")
-            return
-        }
+        guard let dockList = dockListElement else { return }
 
         // Get the currently selected (hovered) dock item
         var selectedRef: CFTypeRef?
@@ -154,17 +140,26 @@ final class DockObserver {
     }
 
     private func resolveRunningApp(from dockItem: AXUIElement) -> NSRunningApplication? {
-        // Read the URL attribute to get the app's bundle URL
+        // Try URL attribute first
         var urlRef: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(dockItem, kAXURLAttribute as CFString, &urlRef) == .success,
-              let url = urlRef as? URL ?? (urlRef as? NSURL)?.absoluteURL else {
-            return nil
+        let urlResult = AXUIElementCopyAttributeValue(dockItem, kAXURLAttribute as CFString, &urlRef)
+
+        if urlResult == .success, let url = urlRef as? URL ?? (urlRef as? NSURL)?.absoluteURL {
+            if let bundle = Bundle(url: url), let bundleId = bundle.bundleIdentifier,
+               let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId).first {
+                return app
+            }
         }
 
-        guard let bundle = Bundle(url: url),
-              let bundleId = bundle.bundleIdentifier else { return nil }
+        // Fallback: match by dock item title against running app names
+        var titleRef: CFTypeRef?
+        if AXUIElementCopyAttributeValue(dockItem, kAXTitleAttribute as CFString, &titleRef) == .success,
+           let title = titleRef as? String,
+           let app = NSWorkspace.shared.runningApplications.first(where: { $0.localizedName == title }) {
+            return app
+        }
 
-        return NSRunningApplication.runningApplications(withBundleIdentifier: bundleId).first
+        return nil
     }
 
     private func screenRect(of element: AXUIElement) -> CGRect {
