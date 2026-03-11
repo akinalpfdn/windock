@@ -21,6 +21,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         registerLoginItem()
         checkPermissionsAndStart()
+        UpdateChecker.check(
+            repo: "akinalpfdn/windock",
+            releasePageURL: URL(string: "https://github.com/akinalpfdn/windock/releases/latest")!
+        )
     }
 
     private func checkPermissionsAndStart() {
