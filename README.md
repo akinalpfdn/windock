@@ -9,6 +9,14 @@
   No custom dock, no replacement — WinDock hooks into your existing Dock and enhances it.
 </p>
 
+<p align="center">
+  <a href="https://github.com/akinalpfdn/windock/releases/latest/download/WinDock.dmg">
+    <img src="https://img.shields.io/badge/Download_WinDock-▼_Latest_Release-007AFF?style=for-the-badge&logo=apple&logoColor=white" alt="Download WinDock" height="48">
+  </a>
+</p>
+
+<p align="center"><sub>macOS 14.0+ · Signed & Notarized</sub></p>
+
 Hover over any dock icon to see live thumbnails of its open windows.
 
 ![WinDock Preview](Assets/windock.gif)
