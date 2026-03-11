@@ -1,11 +1,21 @@
-# WinDock
+<p align="center">
+  <img src="Assets/windock_icon_256x256.png" width="128" alt="WinDock Icon">
+</p>
 
-Windows-style window previews for the macOS Dock. Hover over any dock icon to see live thumbnails of its open windows.
+<h1 align="center">WinDock</h1>
+
+<p align="center">
+  A lightweight extension for the native macOS Dock that adds Windows-style window previews.<br>
+  No custom dock, no replacement — WinDock hooks into your existing Dock and enhances it.
+</p>
+
+Hover over any dock icon to see live thumbnails of its open windows.
 
 ![WinDock Preview](Assets/windock.gif)
 
 ## Features
 
+- **Native Dock extension** — Works directly with the macOS Dock, not a replacement
 - **Dock hover previews** — Live window thumbnails appear above dock icons
 - **Click to focus** — Click any preview to bring that specific window to front
 - **Aero Peek** — Hover a preview card to see the window at its actual screen position
@@ -24,7 +34,7 @@ WinDock uses ~23 MB of memory and 0% CPU when idle. No Electron, no web views �
 
 ## How It Works
 
-WinDock monitors the macOS Dock via the Accessibility API (`AXObserver`). When you hover a dock icon, it captures window thumbnails using ScreenCaptureKit and displays them in a floating panel above the icon.
+WinDock doesn't replace or redraw the Dock. It listens to the native macOS Dock process via the Accessibility API (`AXObserver`), detects which icon you're hovering, and shows a floating preview panel above it. Thumbnails are captured live using ScreenCaptureKit.
 
 ![Aero Peek](Assets/windock3.png)
 

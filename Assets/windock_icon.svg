@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <!-- Subtle inner shadow for depth -->
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#141414"/>
+      <stop offset="100%" stop-color="#0A0A0A"/>
+    </linearGradient>
+    <!-- Glow for active icon -->
+    <radialGradient id="activeGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- macOS squircle background -->
+  <rect x="32" y="32" width="960" height="960" rx="192" ry="192" fill="url(#bgGrad)"/>
+  <!-- Subtle border -->
+  <rect x="32" y="32" width="960" height="960" rx="192" ry="192" fill="none" stroke="#FFFFFF" stroke-width="2" opacity="0.06"/>
+
+  <!-- ===== PREVIEW WINDOW ===== -->
+  <rect x="192" y="160" width="640" height="480" rx="24" ry="24" fill="#FFFFFF" opacity="0.03"/>
+  <rect x="192" y="160" width="640" height="480" rx="24" ry="24" fill="none" stroke="#E0E0E0" stroke-width="6"/>
+
+  <!-- Title bar -->
+  <line x1="192" y1="230" x2="832" y2="230" stroke="#E0E0E0" stroke-width="3" opacity="0.3"/>
+  <!-- Traffic lights (outlined, monochrome) -->
+  <circle cx="232" cy="196" r="9" fill="none" stroke="#E0E0E0" stroke-width="4" opacity="0.45"/>
+  <circle cx="264" cy="196" r="9" fill="none" stroke="#E0E0E0" stroke-width="4" opacity="0.45"/>
+  <circle cx="296" cy="196" r="9" fill="none" stroke="#E0E0E0" stroke-width="4" opacity="0.45"/>
+
+  <!-- Window content - 4-panel preview grid -->
+  <rect x="224" y="260" width="268" height="160" rx="12" fill="#FFFFFF" stroke="#E0E0E0" stroke-width="3" opacity="0.18"/>
+  <!-- Mini content lines in panel 1 -->
+  <line x1="248" y1="292" x2="420" y2="292" stroke="#E0E0E0" stroke-width="5" stroke-linecap="round" opacity="0.15"/>
+  <line x1="248" y1="314" x2="380" y2="314" stroke="#E0E0E0" stroke-width="5" stroke-linecap="round" opacity="0.1"/>
+  <line x1="248" y1="336" x2="400" y2="336" stroke="#E0E0E0" stroke-width="5" stroke-linecap="round" opacity="0.1"/>
+  <rect x="248" y="358" width="60" height="40" rx="4" fill="#E0E0E0" opacity="0.06"/>
+
+  <rect x="524" y="260" width="268" height="160" rx="12" fill="#FFFFFF" stroke="#E0E0E0" stroke-width="3" opacity="0.18"/>
+  <!-- Mini content in panel 2 -->
+  <line x1="548" y1="292" x2="720" y2="292" stroke="#E0E0E0" stroke-width="5" stroke-linecap="round" opacity="0.15"/>
+  <line x1="548" y1="314" x2="690" y2="314" stroke="#E0E0E0" stroke-width="5" stroke-linecap="round" opacity="0.1"/>
+  <rect x="548" y="340" width="100" height="56" rx="4" fill="#E0E0E0" opacity="0.06"/>
+
+  <rect x="224" y="448" width="268" height="160" rx="12" fill="#FFFFFF" stroke="#E0E0E0" stroke-width="3" opacity="0.1"/>
+  <line x1="248" y1="480" x2="400" y2="480" stroke="#E0E0E0" stroke-width="5" stroke-linecap="round" opacity="0.08"/>
+  <line x1="248" y1="502" x2="370" y2="502" stroke="#E0E0E0" stroke-width="5" stroke-linecap="round" opacity="0.06"/>
+
+  <rect x="524" y="448" width="268" height="160" rx="12" fill="#FFFFFF" stroke="#E0E0E0" stroke-width="3" opacity="0.1"/>
+  <line x1="548" y1="480" x2="720" y2="480" stroke="#E0E0E0" stroke-width="5" stroke-linecap="round" opacity="0.08"/>
+  <line x1="548" y1="502" x2="680" y2="502" stroke="#E0E0E0" stroke-width="5" stroke-linecap="round" opacity="0.06"/>
+
+  <!-- ===== CONNECTION ===== -->
+  <line x1="512" y1="640" x2="512" y2="740" stroke="#E0E0E0" stroke-width="4" stroke-dasharray="12,10" opacity="0.2"/>
+
+  <!-- ===== DOCK BAR ===== -->
+  <rect x="222" y="762" width="580" height="96" rx="24" ry="24" fill="#FFFFFF" stroke="#E0E0E0" stroke-width="3" opacity="0.15"/>
+
+  <!-- Dock icons -->
+  <rect x="270" y="786" width="48" height="48" rx="10" fill="#E0E0E0" opacity="0.1"/>
+  <rect x="342" y="786" width="48" height="48" rx="10" fill="#E0E0E0" opacity="0.1"/>
+  <rect x="414" y="786" width="48" height="48" rx="10" fill="#E0E0E0" opacity="0.1"/>
+
+  <!-- Active dock icon (highlighted) -->
+  <circle cx="536" cy="810" r="44" fill="url(#activeGlow)"/>
+  <rect x="510" y="782" width="52" height="52" rx="12" fill="#E0E0E0" stroke="#E0E0E0" stroke-width="3" opacity="0.4"/>
+
+  <rect x="586" y="786" width="48" height="48" rx="10" fill="#E0E0E0" opacity="0.1"/>
+  <rect x="658" y="786" width="48" height="48" rx="10" fill="#E0E0E0" opacity="0.1"/>
+  <rect x="730" y="786" width="48" height="48" rx="10" fill="#E0E0E0" opacity="0.1"/>
+
+  <!-- Active indicator dot -->
+  <circle cx="536" cy="846" r="4.5" fill="#E0E0E0" opacity="0.6"/>
+</svg>
