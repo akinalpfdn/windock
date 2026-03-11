@@ -1,60 +1,92 @@
 import SwiftUI
 
-struct WindowPreviewList: View {
-    let app: DockApp?
-    let namespace: Namespace.ID
-    @Environment(DockViewModel.self) private var viewModel
+/// SwiftUI content displayed inside the PreviewPanel
+struct PreviewPanelContent: View {
+    let app: DockApp
+    let windows: [WindowInfo]
+    let onWindowClick: (WindowInfo) -> Void
+    let onWindowHover: (WindowInfo?) -> Void
+    let onHoverChanged: (Bool) -> Void
 
     var body: some View {
-        Group {
-            if let app = app {
-                HStack(spacing: 12) {
-                    ForEach(app.openWindows) { window in
-                        VStack(spacing: 8) {
-                            // Mock Window Thumbnail
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(window.previewColor.gradient)
-                                .frame(width: 120, height: 80)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(.white.opacity(0.2), lineWidth: 1)
-                                )
-                                .shadow(radius: 4)
-
-                            // Window Title
-                            Text(window.title)
-                                .font(.caption)
-                                .foregroundStyle(.white)
-                                .lineLimit(1)
-                                .frame(maxWidth: 100)
-                        }
-                        .padding(8)
-                        .background(.ultraThinMaterial) // Frost effect behind individual item
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        // Hover effect for the preview card
-                        .onHover { isHovering in
-                            if isHovering {
-                                NSCursor.pointingHand.push()
-                            } else {
-                                NSCursor.pop()
-                            }
-                        }
-                        .onTapGesture {
-                            viewModel.handleWindowClick(window, in: app)
-                        }
-                    }
-                }
-                .padding(12)
-                .background(
-                    GlassView(material: .hudWindow, blendingMode: .withinWindow)
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-                .shadow(color: .black.opacity(0.3), radius: 10, x: 0, y: 5)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(.white.opacity(0.2), lineWidth: 1)
-                )
+        HStack(spacing: Layout.Preview.cardSpacing) {
+            ForEach(windows) { window in
+                WindowPreviewCard(window: window, onTap: {
+                    onWindowClick(window)
+                }, onHover: { isHovered in
+                    onWindowHover(isHovered ? window : nil)
+                })
             }
         }
+        .padding(Layout.Preview.containerPadding)
+        .background(
+            GlassView(material: .hudWindow, blendingMode: .withinWindow)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: Layout.Preview.containerCornerRadius))
+        .shadow(color: .black.opacity(0.3), radius: 10, x: 0, y: 5)
+        .overlay(
+            RoundedRectangle(cornerRadius: Layout.Preview.containerCornerRadius)
+                .stroke(.white.opacity(Animation.borderOpacity), lineWidth: 1)
+        )
+        .onHover(perform: onHoverChanged)
+    }
+}
+
+// MARK: - Window Preview Card
+
+private struct WindowPreviewCard: View {
+    let window: WindowInfo
+    let onTap: () -> Void
+    let onHover: (Bool) -> Void
+
+    @State private var isHovered = false
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Group {
+                if let thumbnail = window.thumbnail {
+                    Image(nsImage: thumbnail)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                } else {
+                    RoundedRectangle(cornerRadius: Layout.Preview.thumbnailCornerRadius)
+                        .fill(.ultraThinMaterial)
+                        .overlay {
+                            Image(systemName: "macwindow")
+                                .font(.title2)
+                                .foregroundStyle(.secondary)
+                        }
+                }
+            }
+            .frame(width: Layout.Preview.thumbnailWidth, height: Layout.Preview.thumbnailHeight)
+            .clipShape(RoundedRectangle(cornerRadius: Layout.Preview.thumbnailCornerRadius))
+            .overlay(
+                RoundedRectangle(cornerRadius: Layout.Preview.thumbnailCornerRadius)
+                    .stroke(.white.opacity(Animation.borderOpacity), lineWidth: 1)
+            )
+            .shadow(radius: 4)
+
+            Text(window.title)
+                .font(.caption)
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .frame(maxWidth: Layout.Preview.thumbnailWidth)
+        }
+        .padding(Layout.Preview.cardPadding)
+        .background(isHovered ? Color.white.opacity(0.1) : .clear)
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: Layout.Preview.cardCornerRadius))
+        .scaleEffect(isHovered ? Animation.hoverScale : 1.0)
+        .animation(.easeInOut(duration: Animation.hoverDuration * 0.75), value: isHovered)
+        .onHover { hovering in
+            isHovered = hovering
+            onHover(hovering)
+            if hovering {
+                NSCursor.pointingHand.push()
+            } else {
+                NSCursor.pop()
+            }
+        }
+        .onTapGesture(perform: onTap)
     }
 }

@@ -1,0 +1,57 @@
+import AppKit
+import SwiftUI
+
+/// Non-activating floating panel for showing window previews above dock icons
+final class PreviewPanel: NSPanel {
+
+    init() {
+        super.init(
+            contentRect: .zero,
+            styleMask: [.nonactivatingPanel, .fullSizeContentView, .borderless],
+            backing: .buffered,
+            defer: true
+        )
+
+        isFloatingPanel = true
+        level = .floating
+        backgroundColor = .clear
+        isOpaque = false
+        hasShadow = true
+        hidesOnDeactivate = false
+        collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
+        isMovableByWindowBackground = false
+        animationBehavior = .utilityWindow
+    }
+
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { false }
+
+    /// Shows the panel with the given SwiftUI content at the specified position
+    func show<Content: View>(content: Content, at origin: CGPoint, size: CGSize) {
+        let hostingView = FirstMouseHostingView(rootView: content)
+        hostingView.frame = NSRect(origin: .zero, size: size)
+        contentView = hostingView
+
+        let frame = NSRect(origin: origin, size: size)
+        setFrame(frame, display: true)
+        orderFrontRegardless()
+    }
+
+    /// Hides the panel with fade-out animation
+    func dismiss() {
+        NSAnimationContext.runAnimationGroup({ context in
+            context.duration = 0.15
+            self.animator().alphaValue = 0
+        }, completionHandler: { [weak self] in
+            self?.orderOut(nil)
+            self?.alphaValue = 1
+        })
+    }
+}
+
+// MARK: - First Mouse Hosting View
+
+/// NSHostingView subclass that accepts first mouse click without requiring window activation
+final class FirstMouseHostingView<Content: View>: NSHostingView<Content> {
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+}

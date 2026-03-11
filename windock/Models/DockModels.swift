@@ -2,31 +2,37 @@ import Foundation
 import SwiftUI
 import AppKit
 
-// Represents a single simulated window for an application
+/// Represents a single window belonging to an application
 struct WindowInfo: Identifiable, Hashable {
-    let id = UUID()
+    let id: CGWindowID
     let title: String
-    let previewColor: Color // Mocking a snapshot/thumbnail with a color
+    let thumbnail: NSImage?
+    let bounds: CGRect
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+
+    static func == (lhs: WindowInfo, rhs: WindowInfo) -> Bool {
+        lhs.id == rhs.id
+    }
 }
 
-// Represents an App sitting in the Dock
+/// Represents a running application in the dock
 struct DockApp: Identifiable, Hashable {
-    // Use bundleIdentifier as ID so the dock position stays stable
     var id: String { bundleIdentifier }
-    
+
     let name: String
     let bundleIdentifier: String
     let icon: NSImage?
     var isRunning: Bool
     var openWindows: [WindowInfo]
-    
-    // Hashable conformance for NSImage (which isn't hashable by default)
+
     func hash(into hasher: inout Hasher) {
         hasher.combine(bundleIdentifier)
-        hasher.combine(isRunning)
     }
-    
+
     static func == (lhs: DockApp, rhs: DockApp) -> Bool {
-        lhs.bundleIdentifier == rhs.bundleIdentifier && lhs.isRunning == rhs.isRunning
+        lhs.bundleIdentifier == rhs.bundleIdentifier
     }
 }
