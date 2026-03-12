@@ -61,6 +61,6 @@ final class UpdateChecker {
 
 private extension Array where Element == Int {
     func padded(to length: Int) -> [Int] {
-        self + Array(repeating: 0, count: max(0, length - count))
+        self + Array(repeating: 0, count: Swift.max(0, length - count))
     }
 }
