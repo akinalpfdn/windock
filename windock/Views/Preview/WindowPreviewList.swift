@@ -2,6 +2,7 @@ import SwiftUI
 
 /// SwiftUI content displayed inside the PreviewPanel
 struct PreviewPanelContent: View {
+    let dockPosition: DockPosition
     let app: DockApp
     let windows: [WindowInfo]
     let onWindowClick: (WindowInfo) -> Void
@@ -9,16 +10,24 @@ struct PreviewPanelContent: View {
     let onWindowHover: (WindowInfo?) -> Void
     let onHoverChanged: (Bool) -> Void
 
+    private var isVertical: Bool { dockPosition != .bottom }
+
     var body: some View {
-        HStack(spacing: Layout.Preview.cardSpacing) {
-            ForEach(windows) { window in
-                WindowPreviewCard(window: window, onTap: {
-                    onWindowClick(window)
-                }, onClose: {
-                    onWindowClose(window)
-                }, onHover: { isHovered in
-                    onWindowHover(isHovered ? window : nil)
-                })
+        let content = ForEach(windows) { window in
+            WindowPreviewCard(window: window, onTap: {
+                onWindowClick(window)
+            }, onClose: {
+                onWindowClose(window)
+            }, onHover: { isHovered in
+                onWindowHover(isHovered ? window : nil)
+            })
+        }
+
+        Group {
+            if isVertical {
+                VStack(spacing: Layout.Preview.cardSpacing) { content }
+            } else {
+                HStack(spacing: Layout.Preview.cardSpacing) { content }
             }
         }
         .padding(Layout.Preview.containerPadding)

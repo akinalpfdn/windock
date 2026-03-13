@@ -2,6 +2,10 @@ import SwiftUI
 import AppKit
 import Observation
 
+enum DockPosition {
+    case bottom, left, right
+}
+
 /// Coordinates dock hover detection, window preview, and panel display
 @Observable
 final class DockViewModel {
@@ -15,6 +19,7 @@ final class DockViewModel {
     private let workspace = NSWorkspace.shared
     private var dismissTask: DispatchWorkItem?
     private var currentBundleId: String?
+    private var currentDockPosition: DockPosition = .bottom
 
     init() {
         dockObserver.onDockItemHovered = { [weak self] app, iconRect in
@@ -63,11 +68,13 @@ final class DockViewModel {
     // MARK: - Preview Display
 
     private func showPreview(iconRect: CGRect) {
-        guard let hoveredApp else { return }
+        guard hoveredApp != nil else { return }
 
-        let content = makePreviewContent()
-        let previewSize = calculatePreviewSize()
-        let origin = calculatePreviewOrigin(iconRect: iconRect, previewSize: previewSize)
+        let dockPosition = detectDockPosition(iconRect: iconRect)
+        currentDockPosition = dockPosition
+        let content = makePreviewContent(dockPosition: dockPosition)
+        let previewSize = calculatePreviewSize(dockPosition: dockPosition)
+        let origin = calculatePreviewOrigin(iconRect: iconRect, previewSize: previewSize, dockPosition: dockPosition)
 
         previewPanel.alphaValue = 1
         previewPanel.show(content: content, at: origin, size: previewSize)
@@ -77,14 +84,15 @@ final class DockViewModel {
     private func updatePreviewContent() {
         guard hoveredApp != nil else { return }
 
-        let content = makePreviewContent()
+        let content = makePreviewContent(dockPosition: currentDockPosition)
         let hostingView = FirstMouseHostingView(rootView: content)
         hostingView.frame = previewPanel.contentView?.bounds ?? .zero
         previewPanel.contentView = hostingView
     }
 
-    private func makePreviewContent() -> PreviewPanelContent {
+    private func makePreviewContent(dockPosition: DockPosition) -> PreviewPanelContent {
         PreviewPanelContent(
+            dockPosition: dockPosition,
             app: hoveredApp!,
             windows: windows,
             onWindowClick: { [weak self] window in
@@ -102,15 +110,36 @@ final class DockViewModel {
         )
     }
 
-    private func calculatePreviewSize() -> CGSize {
-        let count = CGFloat(max(windows.count, 1))
-        let cardWidth = Layout.Preview.thumbnailWidth + Layout.Preview.cardPadding * 2
-        let totalWidth = count * cardWidth + (count - 1) * Layout.Preview.cardSpacing + Layout.Preview.containerPadding * 2
-        let height: CGFloat = Layout.Preview.thumbnailHeight + 60 + Layout.Preview.containerPadding * 2
-        return CGSize(width: min(totalWidth, 800), height: height)
+    private func detectDockPosition(iconRect: CGRect) -> DockPosition {
+        guard let screen = NSScreen.main else { return .bottom }
+
+        let threshold: CGFloat = 80
+        if iconRect.minX < screen.frame.minX + threshold {
+            return .left
+        } else if iconRect.maxX > screen.frame.maxX - threshold {
+            return .right
+        }
+        return .bottom
     }
 
-    private func calculatePreviewOrigin(iconRect: CGRect, previewSize: CGSize) -> CGPoint {
+    private func calculatePreviewSize(dockPosition: DockPosition) -> CGSize {
+        let count = CGFloat(max(windows.count, 1))
+        let cardWidth = Layout.Preview.thumbnailWidth + Layout.Preview.cardPadding * 2
+        let cardHeight: CGFloat = Layout.Preview.thumbnailHeight + 60
+
+        switch dockPosition {
+        case .bottom:
+            let totalWidth = count * cardWidth + (count - 1) * Layout.Preview.cardSpacing + Layout.Preview.containerPadding * 2
+            let height = cardHeight + Layout.Preview.containerPadding * 2
+            return CGSize(width: min(totalWidth, 800), height: height)
+        case .left, .right:
+            let width = cardWidth + Layout.Preview.containerPadding * 2
+            let totalHeight = count * cardHeight + (count - 1) * Layout.Preview.cardSpacing + Layout.Preview.containerPadding * 2
+            return CGSize(width: width, height: min(totalHeight, 600))
+        }
+    }
+
+    private func calculatePreviewOrigin(iconRect: CGRect, previewSize: CGSize, dockPosition: DockPosition) -> CGPoint {
         // iconRect is in CG coordinates (origin at top-left)
         // NSWindow uses NS coordinates (origin at bottom-left)
         guard let screen = NSScreen.main else {
@@ -118,18 +147,36 @@ final class DockViewModel {
         }
 
         let screenHeight = screen.frame.height
+        let buffer = Layout.Preview.bufferFromDock
 
-        // Convert CG top-left Y to NS bottom-left Y
-        let iconBottomNS = screenHeight - iconRect.maxY
-        let bufferFromDock: CGFloat = 4
+        switch dockPosition {
+        case .bottom:
+            let iconBottomNS = screenHeight - iconRect.maxY
+            let x = max(screen.frame.minX, min(
+                iconRect.midX - previewSize.width / 2,
+                screen.frame.maxX - previewSize.width
+            ))
+            let y = iconBottomNS + iconRect.height + buffer
+            return CGPoint(x: x, y: y)
 
-        let x = max(screen.frame.minX, min(
-            iconRect.midX - previewSize.width / 2,
-            screen.frame.maxX - previewSize.width
-        ))
-        let y = iconBottomNS + iconRect.height + bufferFromDock
+        case .left:
+            let x = iconRect.maxX + buffer
+            let iconMidNS = screenHeight - iconRect.midY
+            let y = max(screen.frame.minY, min(
+                iconMidNS - previewSize.height / 2,
+                screen.frame.maxY - previewSize.height
+            ))
+            return CGPoint(x: x, y: y)
 
-        return CGPoint(x: x, y: y)
+        case .right:
+            let x = iconRect.minX - previewSize.width - buffer
+            let iconMidNS = screenHeight - iconRect.midY
+            let y = max(screen.frame.minY, min(
+                iconMidNS - previewSize.height / 2,
+                screen.frame.maxY - previewSize.height
+            ))
+            return CGPoint(x: x, y: y)
+        }
     }
 
     // MARK: - Window Interaction
