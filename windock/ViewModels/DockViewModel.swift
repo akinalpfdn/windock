@@ -185,7 +185,14 @@ final class DockViewModel {
     private func scheduleDismiss() {
         dismissTask?.cancel()
         let task = DispatchWorkItem { [weak self] in
-            guard let self, !self.isPreviewHovered else { return }
+            guard let self else { return }
+            // Check actual mouse position instead of relying solely on .onHover state,
+            // which can get stuck when the content view is replaced (tracking areas lost)
+            let mouseLocation = NSEvent.mouseLocation
+            if self.previewPanel.isVisible, self.previewPanel.frame.contains(mouseLocation) {
+                return
+            }
+            self.isPreviewHovered = false
             self.dismissPreview()
         }
         dismissTask = task
@@ -203,6 +210,7 @@ final class DockViewModel {
         hoveredApp = nil
         windows = []
         currentBundleId = nil
+        isPreviewHovered = false
     }
 
     // MARK: - Window Enumeration
