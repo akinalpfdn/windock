@@ -4,5 +4,11 @@
 <dict>
 	<key>NSScreenCaptureUsageDescription</key>
 	<string>WinDock needs screen recording to show window previews</string>
+	<key>SUFeedURL</key>
+	<string>https://raw.githubusercontent.com/akinalpfdn/windock/main/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>wWLr5ZzL6da+Dcqy9sMkwt1Zo28R6GfY1K2r2Kfxlx8=</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
 </dict>
 </plist>

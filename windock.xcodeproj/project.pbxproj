@@ -36,6 +36,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A1000001SPARKLE00000001 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -78,6 +79,7 @@
 			);
 			name = windock;
 			packageProductDependencies = (
+				A1000002SPARKLE00000002 /* Sparkle */,
 			);
 			productName = windock;
 			productReference = F4FBCBB52EDE3BF9006B87D0 /* windock.app */;
@@ -107,6 +109,9 @@
 			);
 			mainGroup = F4FBCBAC2EDE3BF9006B87D0;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				A1000003SPARKLE00000003 /* XCRemoteSwiftPackageReference "Sparkle" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = F4FBCBB62EDE3BF9006B87D0 /* Products */;
 			projectDirPath = "";
@@ -116,6 +121,25 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		A1000003SPARKLE00000003 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.7.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		A1000002SPARKLE00000002 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A1000003SPARKLE00000003 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
+/* End XCSwiftPackageProductDependency section */
 
 /* Begin PBXResourcesBuildPhase section */
 		F4FBCBB32EDE3BF9006B87D0 /* Resources */ = {
@@ -287,7 +311,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.6;
-				MARKETING_VERSION = 1.3.0;
+				MARKETING_VERSION = 1.5.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.akinalpfdn.windock;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -335,7 +359,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.6;
-				MARKETING_VERSION = 1.3.0;
+				MARKETING_VERSION = 1.5.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.akinalpfdn.windock;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
