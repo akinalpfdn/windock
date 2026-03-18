@@ -1,7 +1,6 @@
 #!/bin/bash
 # Updates appcast.xml with a new release entry for Sparkle auto-updates.
 # Usage: ./scripts/update-appcast.sh <version> <dmg-path>
-# Example: ./scripts/update-appcast.sh 1.5.0 /tmp/WinDock.dmg
 
 set -euo pipefail
 
@@ -20,42 +19,35 @@ if [ ! -f "$DMG_PATH" ]; then
     exit 1
 fi
 
-# Get file size and EdDSA signature
-FILE_SIZE=$(stat -f%z "$DMG_PATH")
-SIGNATURE=$("$SIGN_UPDATE" "$DMG_PATH" 2>&1 | grep 'edSignature=' | sed 's/.*edSignature="\([^"]*\)".*/\1/')
-
-if [ -z "$SIGNATURE" ]; then
-    # Fallback: full output contains just the signature attributes
-    SIGN_OUTPUT=$("$SIGN_UPDATE" "$DMG_PATH" 2>&1)
-    SIGNATURE=$(echo "$SIGN_OUTPUT" | head -1)
-fi
-
+SPARKLE_ATTRS=$("$SIGN_UPDATE" "$DMG_PATH" 2>&1)
 DOWNLOAD_URL="https://github.com/akinalpfdn/windock/releases/download/v${VERSION}/WinDock.dmg"
 PUB_DATE=$(date -u +"%a, %d %b %Y %H:%M:%S %z")
+FILE_SIZE=$(stat -f%z "$DMG_PATH")
 
-# Get the signature output directly (Sparkle outputs sparkle:edSignature="..." length="...")
-SPARKLE_ATTRS=$("$SIGN_UPDATE" "$DMG_PATH" 2>&1)
+python3 - "$APPCAST" "$VERSION" "$PUB_DATE" "$DOWNLOAD_URL" "$SPARKLE_ATTRS" "$FILE_SIZE" << 'PYEOF'
+import sys
 
-# Build the new item entry
-NEW_ITEM="    <item>
-      <title>WinDock ${VERSION}</title>
-      <pubDate>${PUB_DATE}</pubDate>
+appcast_path, version, pub_date, url, sparkle_attrs, file_size = sys.argv[1:7]
+
+item = f"""    <item>
+      <title>WinDock {version}</title>
+      <pubDate>{pub_date}</pubDate>
       <enclosure
-        url=\"${DOWNLOAD_URL}\"
-        ${SPARKLE_ATTRS}
-        type=\"application/octet-stream\"
-        sparkle:version=\"${VERSION}\"
-        sparkle:shortVersionString=\"${VERSION}\"
+        url="{url}"
+        {sparkle_attrs}
+        type="application/octet-stream"
+        sparkle:version="{version}"
+        sparkle:shortVersionString="{version}"
       />
-    </item>"
+    </item>"""
 
-# Insert before closing </channel> tag
-if grep -q "<item>" "$APPCAST"; then
-    # Has existing items - add before </channel>
-    sed -i '' "s|  </channel>|${NEW_ITEM}\n  </channel>|" "$APPCAST"
-else
-    # No items yet - add after <language> line
-    sed -i '' "s|    <language>en</language>|    <language>en</language>\n${NEW_ITEM}|" "$APPCAST"
-fi
+with open(appcast_path, 'r') as f:
+    content = f.read()
 
-echo "✅ Appcast updated: v${VERSION} (${FILE_SIZE} bytes)"
+content = content.replace('  </channel>', item + '\n  </channel>')
+
+with open(appcast_path, 'w') as f:
+    f.write(content)
+
+print(f"✅ Appcast updated: v{version} ({file_size} bytes)")
+PYEOF

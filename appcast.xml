@@ -3,5 +3,16 @@
   <channel>
     <title>WinDock Updates</title>
     <language>en</language>
+    <item>
+      <title>WinDock 1.5.0</title>
+      <pubDate>Wed, 18 Mar 2026 15:26:48 +0000</pubDate>
+      <enclosure
+        url="https://github.com/akinalpfdn/windock/releases/download/v1.5.0/WinDock.dmg"
+        sparkle:edSignature="UtvTv0rBJ2xVnKeUr3vMpK0Ifm9viGRiZHJ6W6djusWCYvk+9UF3NYsG+wZXaSpfjS6NB/IzpiEyiWowzguQDw==" length="1061697"
+        type="application/octet-stream"
+        sparkle:version="1.5.0"
+        sparkle:shortVersionString="1.5.0"
+      />
+    </item>
   </channel>
 </rss>
