@@ -20,6 +20,7 @@ final class DockViewModel {
     private var dismissTask: DispatchWorkItem?
     private var currentBundleId: String?
     private var currentDockPosition: DockPosition = .bottom
+    private var mouseMonitor: Any?
 
     init() {
         dockObserver.onDockItemHovered = { [weak self] app, iconRect in
@@ -78,6 +79,7 @@ final class DockViewModel {
 
         previewPanel.alphaValue = 1
         previewPanel.show(content: content, at: origin, size: previewSize)
+        startMouseMonitor()
     }
 
     /// Updates the preview content without repositioning the panel
@@ -233,8 +235,6 @@ final class DockViewModel {
         dismissTask?.cancel()
         let task = DispatchWorkItem { [weak self] in
             guard let self else { return }
-            // Check actual mouse position instead of relying solely on .onHover state,
-            // which can get stuck when the content view is replaced (tracking areas lost)
             let mouseLocation = NSEvent.mouseLocation
             if self.previewPanel.isVisible, self.previewPanel.frame.contains(mouseLocation) {
                 return
@@ -252,12 +252,42 @@ final class DockViewModel {
     }
 
     private func dismissPreview() {
+        stopMouseMonitor()
         previewPanel.dismiss()
         highlightOverlay.hide()
         hoveredApp = nil
         windows = []
         currentBundleId = nil
         isPreviewHovered = false
+    }
+
+    // MARK: - Mouse Monitor
+
+    /// Event-driven safety net: when preview is visible, monitors mouse movement
+    /// and dismisses if the cursor leaves the panel area. This catches cases where
+    /// SwiftUI's .onHover tracking areas are lost during content view replacement.
+    private func startMouseMonitor() {
+        guard mouseMonitor == nil else { return }
+        mouseMonitor = NSEvent.addLocalMonitorForEvents(matching: .mouseMoved) { [weak self] event in
+            self?.checkMouseStillOnPreview()
+            return event
+        }
+    }
+
+    private func stopMouseMonitor() {
+        if let monitor = mouseMonitor {
+            NSEvent.removeMonitor(monitor)
+            mouseMonitor = nil
+        }
+    }
+
+    private func checkMouseStillOnPreview() {
+        guard previewPanel.isVisible else { return }
+        let mouseLocation = NSEvent.mouseLocation
+        let expandedFrame = previewPanel.frame.insetBy(dx: -20, dy: -20)
+        if !expandedFrame.contains(mouseLocation) {
+            scheduleDismiss()
+        }
     }
 
     // MARK: - Window Enumeration
