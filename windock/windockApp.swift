@@ -24,7 +24,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         registerLoginItem()
         checkPermissionsAndStart()
-        UpdateChecker.shared.start()
+        _ = UpdateChecker.shared
     }
 
     // MARK: - Permission Flow
