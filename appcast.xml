@@ -36,5 +36,16 @@
         sparkle:shortVersionString="1.6.1"
       />
     </item>
+    <item>
+      <title>WinDock 1.6.2</title>
+      <pubDate>Sat, 28 Mar 2026 14:09:22 +0000</pubDate>
+      <enclosure
+        url="https://github.com/akinalpfdn/windock/releases/download/v1.6.2/WinDock.dmg"
+        sparkle:edSignature="X4dCVeNLG+I2tmp7nOwoFMPhAYnZ7l1wOUISLVjmEtivQ9fEZ6buZfkn6f51y2uW3Ap2ox1G4T1hrvuUPRdhBw==" length="1077587"
+        type="application/octet-stream"
+        sparkle:version="1.6.2"
+        sparkle:shortVersionString="1.6.2"
+      />
+    </item>
   </channel>
 </rss>
