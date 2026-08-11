@@ -19,15 +19,22 @@ final class DockViewModel {
     private let workspace = NSWorkspace.shared
     private var dismissTask: DispatchWorkItem?
     private var currentBundleId: String?
+    private var currentDockIconRect: CGRect?
     private var currentDockPosition: DockPosition = .bottom
-    private var mouseMonitor: Any?
+    private var mouseTrackingTimer: Timer?
+
+    private enum HoverTracking {
+        static let pollInterval: TimeInterval = 0.05
+        static let dismissDelay: TimeInterval = 0.2
+        static let hitTolerance: CGFloat = 4
+    }
 
     init() {
         dockObserver.onDockItemHovered = { [weak self] app, iconRect in
             self?.handleDockHover(app: app, iconRect: iconRect)
         }
         dockObserver.onDockItemUnhovered = { [weak self] in
-            self?.scheduleDismiss()
+            self?.reconcilePointerState()
         }
     }
 
@@ -35,11 +42,16 @@ final class DockViewModel {
 
     private func handleDockHover(app: NSRunningApplication, iconRect: CGRect) {
         let bundleId = app.bundleIdentifier ?? ""
-
-        // Same app already showing - skip
-        if bundleId == currentBundleId, previewPanel.isVisible { return }
-
+        currentDockIconRect = iconRect
         cancelDismiss()
+
+        // A repeated hover callback for the same app must still cancel any stale
+        // dismiss request and refresh the icon hit target.
+        if bundleId == currentBundleId, previewPanel.isVisible {
+            reconcilePointerState()
+            return
+        }
+
         currentBundleId = bundleId
 
         let appWindows = getWindows(for: app)
@@ -79,7 +91,8 @@ final class DockViewModel {
 
         previewPanel.alphaValue = 1
         previewPanel.show(content: content, at: origin, size: previewSize)
-        startMouseMonitor()
+        startMouseTracking()
+        reconcilePointerState()
     }
 
     /// Updates the preview content without repositioning the panel
@@ -87,6 +100,11 @@ final class DockViewModel {
         guard hoveredApp != nil else { return }
 
         let content = makePreviewContent(dockPosition: currentDockPosition)
+        // Rebuild the hosting view after thumbnails arrive. Updating rootView in
+        // place can leave SwiftUI's ForEach rows displaying the initial nil-image
+        // state even though ScreenCaptureKit successfully returned thumbnails.
+        // Pointer lifetime is tracked independently by the polling timer, so
+        // replacing this view no longer causes the preview to dismiss.
         let hostingView = FirstMouseHostingView(rootView: content)
         hostingView.frame = previewPanel.contentView?.bounds ?? .zero
         previewPanel.contentView = hostingView
@@ -224,26 +242,20 @@ final class DockViewModel {
 
     func handlePreviewHover(_ isHovering: Bool) {
         isPreviewHovered = isHovering
-        if isHovering {
-            cancelDismiss()
-        } else {
-            scheduleDismiss()
-        }
+        reconcilePointerState()
     }
 
     private func scheduleDismiss() {
-        dismissTask?.cancel()
+        guard previewPanel.isVisible, dismissTask == nil else { return }
+
         let task = DispatchWorkItem { [weak self] in
             guard let self else { return }
-            let mouseLocation = NSEvent.mouseLocation
-            if self.previewPanel.isVisible, self.previewPanel.frame.contains(mouseLocation) {
-                return
-            }
-            self.isPreviewHovered = false
+            self.dismissTask = nil
+            guard !self.isPointerInInteractiveRegion() else { return }
             self.dismissPreview()
         }
         dismissTask = task
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: task)
+        DispatchQueue.main.asyncAfter(deadline: .now() + HoverTracking.dismissDelay, execute: task)
     }
 
     private func cancelDismiss() {
@@ -252,42 +264,67 @@ final class DockViewModel {
     }
 
     private func dismissPreview() {
-        stopMouseMonitor()
+        cancelDismiss()
+        stopMouseTracking()
         previewPanel.dismiss()
         highlightOverlay.hide()
         hoveredApp = nil
         windows = []
         currentBundleId = nil
+        currentDockIconRect = nil
         isPreviewHovered = false
     }
 
-    // MARK: - Mouse Monitor
+    // MARK: - Pointer Tracking
 
-    /// Event-driven safety net: when preview is visible, monitors mouse movement
-    /// and dismisses if the cursor leaves the panel area. This catches cases where
-    /// SwiftUI's .onHover tracking areas are lost during content view replacement.
-    private func startMouseMonitor() {
-        guard mouseMonitor == nil else { return }
-        mouseMonitor = NSEvent.addLocalMonitorForEvents(matching: .mouseMoved) { [weak self] event in
-            self?.checkMouseStillOnPreview()
-            return event
+    /// Polling `NSEvent.mouseLocation` keeps working while the cursor is over the
+    /// Dock or another app, unlike a local event monitor which only sees WinDock's
+    /// own events. The timer only exists while a preview is visible.
+    private func startMouseTracking() {
+        guard mouseTrackingTimer == nil else { return }
+
+        let timer = Timer(timeInterval: HoverTracking.pollInterval, repeats: true) { [weak self] _ in
+            self?.reconcilePointerState()
         }
+        RunLoop.main.add(timer, forMode: .common)
+        mouseTrackingTimer = timer
     }
 
-    private func stopMouseMonitor() {
-        if let monitor = mouseMonitor {
-            NSEvent.removeMonitor(monitor)
-            mouseMonitor = nil
-        }
+    private func stopMouseTracking() {
+        mouseTrackingTimer?.invalidate()
+        mouseTrackingTimer = nil
     }
 
-    private func checkMouseStillOnPreview() {
+    private func reconcilePointerState() {
         guard previewPanel.isVisible else { return }
-        let mouseLocation = NSEvent.mouseLocation
-        let expandedFrame = previewPanel.frame.insetBy(dx: -20, dy: -20)
-        if !expandedFrame.contains(mouseLocation) {
+
+        isPreviewHovered = isPointerOverPreview()
+        if isPointerInInteractiveRegion() {
+            cancelDismiss()
+        } else {
             scheduleDismiss()
         }
+    }
+
+    private func isPointerInInteractiveRegion() -> Bool {
+        isPointerOverDockIcon() || isPointerOverPreview()
+    }
+
+    private func isPointerOverDockIcon() -> Bool {
+        guard let iconRect = currentDockIconRect,
+              let mouseLocation = CGEvent(source: nil)?.location else { return false }
+
+        return iconRect
+            .insetBy(dx: -HoverTracking.hitTolerance, dy: -HoverTracking.hitTolerance)
+            .contains(mouseLocation)
+    }
+
+    private func isPointerOverPreview() -> Bool {
+        guard previewPanel.isVisible else { return false }
+
+        return previewPanel.frame
+            .insetBy(dx: -HoverTracking.hitTolerance, dy: -HoverTracking.hitTolerance)
+            .contains(NSEvent.mouseLocation)
     }
 
     // MARK: - Window Enumeration
