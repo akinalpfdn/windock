@@ -19,15 +19,27 @@ if [ ! -f "$DMG_PATH" ]; then
     exit 1
 fi
 
+# Sparkle compares sparkle:version against the installed CFBundleVersion, so read it from the shipped app
+MOUNT_POINT=$(hdiutil attach -readonly -nobrowse -noverify "$DMG_PATH" | tail -1 | awk -F'\t' '{print $NF}')
+APP_PLIST=$(find "$MOUNT_POINT" -maxdepth 3 -path "*.app/Contents/Info.plist" | head -1)
+BUILD_NUMBER=$(plutil -extract CFBundleVersion raw "$APP_PLIST")
+SHORT_VERSION=$(plutil -extract CFBundleShortVersionString raw "$APP_PLIST")
+hdiutil detach -quiet "$MOUNT_POINT"
+
+if [ "$SHORT_VERSION" != "$VERSION" ]; then
+    echo "Error: DMG contains version $SHORT_VERSION, expected $VERSION"
+    exit 1
+fi
+
 SPARKLE_ATTRS=$("$SIGN_UPDATE" "$DMG_PATH" 2>&1)
 DOWNLOAD_URL="https://github.com/akinalpfdn/windock/releases/download/v${VERSION}/WinDock.dmg"
 PUB_DATE=$(date -u +"%a, %d %b %Y %H:%M:%S %z")
 FILE_SIZE=$(stat -f%z "$DMG_PATH")
 
-python3 - "$APPCAST" "$VERSION" "$PUB_DATE" "$DOWNLOAD_URL" "$SPARKLE_ATTRS" "$FILE_SIZE" << 'PYEOF'
+python3 - "$APPCAST" "$VERSION" "$PUB_DATE" "$DOWNLOAD_URL" "$SPARKLE_ATTRS" "$FILE_SIZE" "$BUILD_NUMBER" << 'PYEOF'
 import sys
 
-appcast_path, version, pub_date, url, sparkle_attrs, file_size = sys.argv[1:7]
+appcast_path, version, pub_date, url, sparkle_attrs, file_size, build_number = sys.argv[1:8]
 
 item = f"""    <item>
       <title>WinDock {version}</title>
@@ -36,7 +48,7 @@ item = f"""    <item>
         url="{url}"
         {sparkle_attrs}
         type="application/octet-stream"
-        sparkle:version="{version}"
+        sparkle:version="{build_number}"
         sparkle:shortVersionString="{version}"
       />
     </item>"""
@@ -49,5 +61,5 @@ content = content.replace('  </channel>', item + '\n  </channel>')
 with open(appcast_path, 'w') as f:
     f.write(content)
 
-print(f"✅ Appcast updated: v{version} ({file_size} bytes)")
+print(f"✅ Appcast updated: v{version} build {build_number} ({file_size} bytes)")
 PYEOF
