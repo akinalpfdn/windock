@@ -7,16 +7,7 @@ final class WindowHighlightOverlay {
 
     /// Shows the thumbnail image at the window's screen position
     func peek(thumbnail: NSImage, bounds: CGRect) {
-        guard let mainScreen = NSScreen.main else { return }
-        let screenHeight = mainScreen.frame.height
-
-        // Convert CG coordinates (top-left) to NS coordinates (bottom-left)
-        let nsFrame = NSRect(
-            x: bounds.origin.x,
-            y: screenHeight - bounds.origin.y - bounds.height,
-            width: bounds.width,
-            height: bounds.height
-        )
+        let nsFrame = ScreenGeometry.appKitRect(fromCG: bounds)
 
         if let existing = overlayWindow {
             existing.setFrame(nsFrame, display: false)

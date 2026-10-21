@@ -71,11 +71,15 @@ final class DockViewModel {
     private func showPreview(iconRect: CGRect) {
         guard hoveredApp != nil else { return }
 
-        let dockPosition = detectDockPosition(iconRect: iconRect)
+        // AX reports the icon in CG global coordinates; the dock may live on any display
+        let iconFrame = ScreenGeometry.appKitRect(fromCG: iconRect)
+        guard let screen = ScreenGeometry.screen(containing: iconFrame) else { return }
+
+        let dockPosition = detectDockPosition(iconRect: iconFrame, screen: screen)
         currentDockPosition = dockPosition
         let content = makePreviewContent(dockPosition: dockPosition)
         let previewSize = calculatePreviewSize(dockPosition: dockPosition)
-        let origin = calculatePreviewOrigin(iconRect: iconRect, previewSize: previewSize, dockPosition: dockPosition)
+        let origin = calculatePreviewOrigin(iconRect: iconFrame, previewSize: previewSize, dockPosition: dockPosition, screen: screen)
 
         previewPanel.alphaValue = 1
         previewPanel.show(content: content, at: origin, size: previewSize)
@@ -112,9 +116,7 @@ final class DockViewModel {
         )
     }
 
-    private func detectDockPosition(iconRect: CGRect) -> DockPosition {
-        guard let screen = NSScreen.main else { return .bottom }
-
+    private func detectDockPosition(iconRect: NSRect, screen: NSScreen) -> DockPosition {
         let threshold: CGFloat = 80
         if iconRect.minX < screen.frame.minX + threshold {
             return .left
@@ -141,41 +143,27 @@ final class DockViewModel {
         }
     }
 
-    private func calculatePreviewOrigin(iconRect: CGRect, previewSize: CGSize, dockPosition: DockPosition) -> CGPoint {
-        // iconRect is in CG coordinates (origin at top-left)
-        // NSWindow uses NS coordinates (origin at bottom-left)
-        guard let screen = NSScreen.main else {
-            return CGPoint(x: iconRect.midX - previewSize.width / 2, y: 0)
-        }
-
-        let screenHeight = screen.frame.height
+    /// Positions the panel next to the icon, clamped to the screen hosting the dock
+    private func calculatePreviewOrigin(iconRect: NSRect, previewSize: CGSize, dockPosition: DockPosition, screen: NSScreen) -> CGPoint {
+        let bounds = screen.frame
         let buffer = Layout.Preview.bufferFromDock
 
         switch dockPosition {
         case .bottom:
-            let iconBottomNS = screenHeight - iconRect.maxY
-            let x = max(screen.frame.minX, min(
+            let x = max(bounds.minX, min(
                 iconRect.midX - previewSize.width / 2,
-                screen.frame.maxX - previewSize.width
+                bounds.maxX - previewSize.width
             ))
-            let y = iconBottomNS + iconRect.height + buffer
+            let y = iconRect.maxY + buffer
             return CGPoint(x: x, y: y)
 
-        case .left:
-            let x = iconRect.maxX + buffer
-            let iconMidNS = screenHeight - iconRect.midY
-            let y = max(screen.frame.minY, min(
-                iconMidNS - previewSize.height / 2,
-                screen.frame.maxY - previewSize.height
-            ))
-            return CGPoint(x: x, y: y)
-
-        case .right:
-            let x = iconRect.minX - previewSize.width - buffer
-            let iconMidNS = screenHeight - iconRect.midY
-            let y = max(screen.frame.minY, min(
-                iconMidNS - previewSize.height / 2,
-                screen.frame.maxY - previewSize.height
+        case .left, .right:
+            let x = dockPosition == .left
+                ? iconRect.maxX + buffer
+                : iconRect.minX - previewSize.width - buffer
+            let y = max(bounds.minY, min(
+                iconRect.midY - previewSize.height / 2,
+                bounds.maxY - previewSize.height
             ))
             return CGPoint(x: x, y: y)
         }
