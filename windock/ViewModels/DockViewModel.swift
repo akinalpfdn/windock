@@ -21,10 +21,9 @@ final class DockViewModel {
     private var currentBundleId: String?
     private var currentDockIconRect: CGRect?
     private var currentDockPosition: DockPosition = .bottom
-    private var mouseTrackingTimer: Timer?
+    private var mouseMonitors: [Any] = []
 
     private enum HoverTracking {
-        static let pollInterval: TimeInterval = 0.05
         static let dismissDelay: TimeInterval = 0.2
         static let hitTolerance: CGFloat = 4
     }
@@ -107,7 +106,7 @@ final class DockViewModel {
         // Rebuild the hosting view after thumbnails arrive. Updating rootView in
         // place can leave SwiftUI's ForEach rows displaying the initial nil-image
         // state even though ScreenCaptureKit successfully returned thumbnails.
-        // Pointer lifetime is tracked independently by the polling timer, so
+        // Pointer lifetime is tracked independently by the mouse monitors, so
         // replacing this view no longer causes the preview to dismiss.
         let hostingView = FirstMouseHostingView(rootView: content)
         hostingView.frame = previewPanel.contentView?.bounds ?? .zero
@@ -265,22 +264,27 @@ final class DockViewModel {
 
     // MARK: - Pointer Tracking
 
-    /// Polling `NSEvent.mouseLocation` keeps working while the cursor is over the
-    /// Dock or another app, unlike a local event monitor which only sees WinDock's
-    /// own events. The timer only exists while a preview is visible.
+    /// The global monitor sees movement over the Dock and other apps; the local one
+    /// covers WinDock's own panel. Both exist only while a preview is visible.
     private func startMouseTracking() {
-        guard mouseTrackingTimer == nil else { return }
+        guard mouseMonitors.isEmpty else { return }
 
-        let timer = Timer(timeInterval: HoverTracking.pollInterval, repeats: true) { [weak self] _ in
+        if let global = NSEvent.addGlobalMonitorForEvents(matching: .mouseMoved, handler: { [weak self] _ in
             self?.reconcilePointerState()
+        }) {
+            mouseMonitors.append(global)
         }
-        RunLoop.main.add(timer, forMode: .common)
-        mouseTrackingTimer = timer
+        if let local = NSEvent.addLocalMonitorForEvents(matching: .mouseMoved, handler: { [weak self] event in
+            self?.reconcilePointerState()
+            return event
+        }) {
+            mouseMonitors.append(local)
+        }
     }
 
     private func stopMouseTracking() {
-        mouseTrackingTimer?.invalidate()
-        mouseTrackingTimer = nil
+        mouseMonitors.forEach(NSEvent.removeMonitor)
+        mouseMonitors.removeAll()
     }
 
     private func reconcilePointerState() {
